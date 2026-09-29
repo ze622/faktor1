@@ -148,8 +148,7 @@
                 let price = productDatabase[matchedName];
                 let lineTotal = price * qty;
                 grandTotal += lineTotal;
-                plainInvoiceLines.push(`${matchedN
-ame} {qty} عدد $   ${lineTotal.toLocaleString()}`);
+          plainInvoiceLines.push(`${matchedName} ${qty} عدد ${lineTotal.toLocaleString()}`);
                 htmlTable += `<tr>
                     <td>${matchedName}</td>
                     <td>${qty}</td>
