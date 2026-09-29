@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سیستم فاکتور ساز </title>
+    <title>سیستم فاکتور ساز کرشمه</title>
     
     <!-- بارگذاری مستقیم کتابخانه از اینترنت برای جلوگیری از خطای فایل پیدا نشد -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
@@ -28,7 +28,7 @@
 <body>
 
 <div class="container">
-    <h2>سیستم فاکتور </h2>
+    <h2>سیستم فاکتور کرشمه</h2>
     
     <label>۱. بارگذاری فایل اکسل محصولات:</label>
     <input type="file" id="excelFile" accept=".xlsx, .xls">
@@ -37,7 +37,7 @@
     <hr>
 
     <label>۲. وارد کردن لیست کالاها (نام کالا + تعداد):</label>
-    <textarea id="inputText" rows="5" placeholder="مثال:&#10;مداد مشکی  2&#10;پاک کن  1"></textarea>
+    <textarea id="inputText" rows="5" placeholder="مثال:&#10;کرم کرشمه 2&#10;پن کرشمه 1"></textarea>
     
     <button onclick="generateInvoice()">تولید فاکتور</button>
     <button id="copyButton" onclick="copyInvoice()" disabled>کپی فاکتور</button>
@@ -148,9 +148,7 @@
                 let price = productDatabase[matchedName];
                 let lineTotal = price * qty;
                 grandTotal += lineTotal;
-plainInvoiceLines.push(`${matchedName} ${qty} عدد ${lineTotal.toLocaleString()}`);
-
-               ${lineTotal.toLocaleString()}`);
+                plainInvoiceLines.push(`${matchedName} | ${qty} | ${price.toLocaleString()} | ${lineTotal.toLocaleString()}`);
                 htmlTable += `<tr>
                     <td>${matchedName}</td>
                     <td>${qty}</td>
