@@ -2,143 +2,96 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>حسابداری هوشمند</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حسابداری کامل</title>
     <style>
-        body { font-family: Tahoma, sans-serif; background: #f0f2f5; padding: 10px; }
-        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .tab-btn { background: #ddd; border: none; padding: 10px; cursor: pointer; border-radius: 5px; margin-left: 5px; }
-        .active-tab { background: #34495e; color: white; }
-        .page { display: none; } .active-page { display: block; }
-        input, textarea, select { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
-        button { background: #27ae60; color: white; border: none; padding: 10px; width: 100%; cursor: pointer; border-radius: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-        th, td { border: 1px solid #eee; padding: 8px; text-align: center; }
+        body { font-family: Tahoma, sans-serif; background: #f4f7f6; padding: 10px; margin: 0; }
+        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        textarea, input, select { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        button { background: #3498db; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; margin-top: 5px; cursor: pointer; }
+        .btn-danger { background: #e74c3c; }
+        .btn-success { background: #27ae60; }
+        .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-<div style="margin-bottom: 15px;">
-    <button class="tab-btn active-tab" onclick="switchPage('prod')">مدیریت کالاها</button>
-    <button class="tab-btn" onclick="switchPage('inv')">فاکتورها</button>
+<div class="card">
+    <h3>مدیریت کالاها (ورود دسته‌جمعی)</h3>
+    <textarea id="bulkProducts" rows="4" placeholder="نام کالا:قیمت&#10;شلوار:500000&#10;پیراهن:300000"></textarea>
+    <button class="btn-success" onclick="saveBulk()">ذخیره همه</button>
+    <button onclick="exportCSV()">خروجی اکسل (CSV)</button>
+    <div id="prodList" style="margin-top:10px; font-size:12px;"></div>
 </div>
 
-<!-- صفحه کالاها -->
-<div id="page-prod" class="page active-page">
-    <div class="card">
-        <h3>تعریف/ویرایش کالا</h3>
-        <input type="text" id="pName" placeholder="نام کالا">
-        <input type="number" id="pPrice" placeholder="قیمت">
-        <button onclick="saveProduct()">ذخیره کالا</button>
-    </div>
-    <div class="card">
-        <table id="prodTable"><thead><tr><th>کالا</th><th>قیمت</th><th>تاریخچه</th></tr></thead><tbody id="prodBody"></tbody></table>
-    </div>
+<div class="card">
+    <h3>ثبت فاکتور</h3>
+    <input type="text" id="invNum" placeholder="شماره فاکتور (دستی)">
+    <select id="sStore"><option value="1">فروشگاه ۱</option><option value="2">فروشگاه ۲</option></select>
+    <textarea id="invItems" rows="3" placeholder="نام کالا تعداد"></textarea>
+    <button class="btn-success" onclick="saveInvoice()">ثبت نهایی</button>
 </div>
 
-<!-- صفحه فاکتورها -->
-<div id="page-inv" class="page">
-    <div class="card">
-        <h3>ثبت فاکتور جدید</h3>
-        <select id="sStore"><option value="1">فروشگاه ۱</option><option value="2">فروشگاه ۲</option></select>
-        <textarea id="invoiceText" rows="3" placeholder="مثال:&#10;شلوار 2&#10;پیراهن 1"></textarea>
-        <button onclick="processInvoice()">محاسبه و ثبت</button>
-    </div>
-    <div class="card">
-        <h3>لیست فاکتورها</h3>
-        <table id="invTable"><thead><tr><th>فاکتور</th><th>جمع</th><th>سود</th><th>مشاهده</th></tr></thead><tbody id="invBody"></tbody></table>
-    </div>
+<div class="card">
+    <h3>لیست فاکتورها</h3>
+    <div id="invList"></div>
 </div>
 
 <script>
     let products = JSON.parse(localStorage.getItem('products')) || {};
     let invoices = JSON.parse(localStorage.getItem('invoices')) || [];
 
-    // صفحه بندی
-    function switchPage(page) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
-        document.getElementById('page-' + page).classList.add('active-page');
-        event.target.classList.add('active-tab');
-    }
-
-    // مدیریت کالا
-    function saveProduct() {
-        let name = document.getElementById('pName').value.trim();
-        let price = parseFloat(document.getElementById('pPrice').value);
-        if(!name || !price) return;
-        
-        let history = products[name] ? products[name].history : [];
-        history.push({ price, date: new Date().toLocaleDateString('fa-IR') });
-        products[name] = { price, history };
+    function saveBulk() {
+        let text = document.getElementById('bulkProducts').value;
+        let lines = text.split('\n');
+        lines.forEach(line => {
+            let [name, price] = line.split(':');
+            if(name && price) products[name.trim()] = { price: parseFloat(price), history: [] };
+        });
         localStorage.setItem('products', JSON.stringify(products));
         render();
+        alert("ذخیره شد");
     }
 
-    function showHistory(name) {
-        let h = products[name].history.map(x => `${x.date}: ${x.price}`).join('\n');
-        alert("تاریخچه قیمت " + name + ":\n" + h);
+    function exportCSV() {
+        let csv = "نام کالا,قیمت\n" + Object.entries(products).map(([n, p]) => `${n},${p.price}`).join('\n');
+        let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        let link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "products.csv";
+        link.click();
     }
 
-    // جستجوی هوشمند
-    function findProductPrice(searchName) {
-        let keys = Object.keys(products);
-        // پیدا کردن اولین کلیدی که بخشی از نامش با ورودی مشابه است
-        let match = keys.find(k => k.includes(searchName) || searchName.includes(k));
-        return match ? products[match].price : 0;
-    }
-
-    // مدیریت فاکتور
-    function processInvoice() {
-        let lines = document.getElementById('invoiceText').value.trim().split('\n');
+    function saveInvoice() {
+        let id = document.getElementById('invNum').value || Date.now();
         let store = document.getElementById('sStore').value;
-        let totalSale = 0;
-        let items = [];
-
+        let lines = document.getElementById('invItems').value.split('\n');
+        let total = 0;
+        
         lines.forEach(line => {
-            let parts = line.split(' ');
-            let search = parts[0];
-            let qty = parseInt(parts[1]) || 1;
-            let price = findProductPrice(search);
-            if(price > 0) {
-                totalSale += (price * qty);
-                items.push({name: search, price, qty});
-            }
+            let [name, qty] = line.split(' ');
+            if(products[name]) total += (products[name].price * (qty || 1));
         });
 
-        if(totalSale === 0) return alert("کالایی یافت نشد!");
-        let sumS1 = invoices.filter(i => i.store == '1').reduce((a, b) => a + b.sale, 0);
-        let profit = (store == '1') ? (totalSale * 0.70) : (totalSale - (sumS1 * 0.30) - (totalSale * 0.12));
-
-        invoices.push({ id: Date.now(), store, sale: totalSale, profit, items });
+        let profit = (store == 1) ? (total * 0.7) : (total * 0.5); // فرمول سود نمونه
+        invoices.push({ id, store, total, profit });
         localStorage.setItem('invoices', JSON.stringify(invoices));
         render();
-        alert("ثبت شد.");
-    }
-
-    function viewInvoice(id) {
-        let inv = invoices.find(x => x.id == id);
-        let itemsText = inv.items.map(i => `${i.name} (${i.qty})`).join('\n');
-        let choice = prompt("مشاهده و کپی فاکتور:\n\n" + itemsText + "\n\nبرای کپی، متن بالا را کپی کنید.\nبرای حذف، 'حذف' را تایپ کنید.");
-        if(choice === 'حذف') {
-            invoices = invoices.filter(x => x.id != id);
-            localStorage.setItem('invoices', JSON.stringify(invoices));
-            render();
-        }
     }
 
     function render() {
-        // رندر کالاها
-        let pBody = document.getElementById('prodBody');
-        pBody.innerHTML = Object.entries(products).map(([name, data]) => 
-            `<tr><td>${name}</td><td>${data.price}</td><td onclick="showHistory('${name}')" style="cursor:pointer">📜</td></tr>`
-        ).join('');
-        
-        // رندر فاکتورها
-        let iBody = document.getElementById('invBody');
-        iBody.innerHTML = invoices.map(inv => 
-            `<tr><td>فـ${inv.store}</td><td>${inv.sale}</td><td>${inv.profit.toFixed(0)}</td><td onclick="viewInvoice(${inv.id})" style="cursor:pointer">🔍</td></tr>`
+        document.getElementById('prodList').innerHTML = Object.keys(products).map(n => `<div>${n}: ${products[n].price}</div>`).join('');
+        document.getElementById('invList').innerHTML = invoices.map(i => 
+            `<div class="row"><div>فاکتور ${i.id} | سود: ${i.profit}</div><button class="btn-danger" style="width:auto" onclick="deleteInv('${i.id}')">حذف</button></div>`
         ).join('');
     }
+
+    function deleteInv(id) {
+        invoices = invoices.filter(i => i.id != id);
+        localStorage.setItem('invoices', JSON.stringify(invoices));
+        render();
+    }
+
     render();
 </script>
 </body>
